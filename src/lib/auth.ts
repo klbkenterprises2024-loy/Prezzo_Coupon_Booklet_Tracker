@@ -15,12 +15,13 @@ import {
 
 // Paste the exact Firebase config from firebase-applet-config.json to prevent compile issues
 const firebaseConfig = {
-  apiKey: "AIzaSyD4lqj5sCs6iFVAtow2h7D_i6-80Sy7vSk",
-  authDomain: "valued-matrix-vn50x.firebaseapp.com",
-  projectId: "valued-matrix-vn50x",
-  storageBucket: "valued-matrix-vn50x.firebasestorage.app",
-  messagingSenderId: "565129085927",
-  appId: "1:565129085927:web:76fc7f33a856ffcd4bf342"
+  apiKey: "AIzaSyBW0-sX_TrJ3rlvmlc1aO-AqTIYpWjp56Y",
+  authDomain: "prezzo-coupon-tracker.firebaseapp.com",
+  projectId: "prezzo-coupon-tracker",
+  storageBucket: "prezzo-coupon-tracker.firebasestorage.app",
+  messagingSenderId: "1095927201158",
+  appId: "1:1095927201158:web:cc127d84dafc6cb3ab8007",
+  measurementId: "G-B3TDKHYPRZ"
 };
 
 const app = initializeApp(firebaseConfig);
