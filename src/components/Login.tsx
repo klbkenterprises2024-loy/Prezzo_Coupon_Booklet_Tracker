@@ -134,26 +134,7 @@ export default function Login({
             </button>
           </form>
 
-          {/* Quick entry links to make testing / setup extremely smooth for the user */}
-          <div className="mt-6 pt-5 border-t border-stone-100">
-            <p className="text-center text-[10px] text-stone-400 font-mono uppercase tracking-wider mb-3">
-              Quick Dev Shortcuts
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button 
-                onClick={() => handleQuickPIN(adminPin)}
-                className="px-3 py-1.5 text-[10px] font-mono font-bold bg-stone-100 text-stone-700 rounded-lg hover:bg-[#991B1B]/10 hover:text-[#991B1B] transition-all cursor-pointer border border-stone-200"
-              >
-                Admin (PIN: {adminPin})
-              </button>
-              <button 
-                onClick={() => handleQuickPIN(staffPin)}
-                className="px-3 py-1.5 text-[10px] font-mono font-bold bg-stone-100 text-stone-700 rounded-lg hover:bg-[#991B1B]/10 hover:text-[#991B1B] transition-all cursor-pointer border border-stone-200"
-              >
-                Staff (PIN: {staffPin})
-              </button>
-            </div>
-          </div>
+
 
           <div className="mt-6 pt-4 border-t border-stone-100 text-center">
             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 font-mono">
