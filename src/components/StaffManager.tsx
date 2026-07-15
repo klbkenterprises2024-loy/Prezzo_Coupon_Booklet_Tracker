@@ -84,7 +84,7 @@ export default function StaffManager({
 
         {/* Informational Box */}
         <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-4 text-xs text-stone-600 leading-relaxed">
-          <strong className="text-[#991B1B]">Security enforcement:</strong> Only Google accounts with emails matching this roster (or Loy Rego) are granted sign-in access. Others will see an Access Denied panel. This prevents random users from viewing booklet sales or performing coupon redemptions.
+          <strong className="text-[#991B1B]">Access Control:</strong> System access is protected by the customized PIN. Here, administrators can maintain the internal staff roster, and associate members with their primary operating restaurant outlets.
         </div>
 
         <div className="overflow-x-auto">
@@ -92,7 +92,7 @@ export default function StaffManager({
             <thead>
               <tr className="bg-stone-50">
                 <th className="px-4 py-3 text-xs font-bold text-stone-600 uppercase font-mono">Staff Member</th>
-                <th className="px-4 py-3 text-xs font-bold text-stone-600 uppercase font-mono">Google Email</th>
+                <th className="px-4 py-3 text-xs font-bold text-stone-600 uppercase font-mono">Email Address</th>
                 <th className="px-4 py-3 text-xs font-bold text-stone-600 uppercase font-mono">System Role</th>
                 <th className="px-4 py-3 text-xs font-bold text-stone-600 uppercase font-mono">Primary Outlet</th>
               </tr>
@@ -164,7 +164,7 @@ export default function StaffManager({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1 font-mono">Google Email Address</label>
+              <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1 font-mono">Email Address</label>
               <input
                 type="email"
                 placeholder="e.g. employee@gmail.com"

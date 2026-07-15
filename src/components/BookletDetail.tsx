@@ -56,7 +56,7 @@ export default function BookletDetail({
       `Bill Value: ₹${orderValue}\n` +
       `Outlet: ${outlet}\n` +
       `Staff: ${currentStaffName}\n\n` +
-      `Are you sure you want to log this redemption? This action will write to your Google Sheet in real-time and cannot be undone.`
+      `Are you sure you want to log this redemption? This action will write to your device's database in real-time and cannot be undone.`
     );
 
     if (!isConfirmed) return;
