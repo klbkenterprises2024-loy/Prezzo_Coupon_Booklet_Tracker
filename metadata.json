@@ -1,0 +1,6 @@
+{
+  "name": "Prezzo Pizzeria Coupon Tracker",
+  "description": "Track coupon booklets, sales, and redemptions for Prezzo Pizzeria with real-time Google Sheets sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
