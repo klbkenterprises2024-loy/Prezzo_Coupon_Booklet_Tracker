@@ -17,7 +17,7 @@ import {
   FileJson,
   RefreshCw
 } from "lucide-react";
-import { Booklet, Redemption } from "../types";
+import { Booklet, Redemption, CouponType, normalizeCouponType } from "../types";
 import { 
   exportDatabaseBackup, 
   importDatabaseBackup, 
@@ -56,6 +56,12 @@ export default function SystemSettings({
   const [csvSuccess, setCsvSuccess] = useState(false);
   const [csvCount, setCsvCount] = useState(0);
   const [csvImportMode, setCsvImportMode] = useState<"append" | "replace">("append");
+
+  // CSV Redemption Import states
+  const [redemptionCsvError, setRedemptionCsvError] = useState<string | null>(null);
+  const [redemptionCsvSuccess, setRedemptionCsvSuccess] = useState(false);
+  const [redemptionCsvCount, setRedemptionCsvCount] = useState(0);
+  const [redemptionCsvImportMode, setRedemptionCsvImportMode] = useState<"append" | "replace">("append");
 
   // Helper to parse CSV string with full support for quotes and commas inside fields
   const parseCSV = (text: string): string[][] => {
@@ -241,6 +247,154 @@ export default function SystemSettings({
       } catch (err: any) {
         setCsvError(err.message || "Failed to process CSV file. Ensure columns match the template.");
         setCsvSuccess(false);
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so user can upload the same file again
+    e.target.value = "";
+  };
+
+  // Download clean Redemptions template CSV
+  const handleDownloadRedemptionsCSVTemplate = () => {
+    const headers = [
+      "Redemption ID",
+      "Booklet ID",
+      "Coupon Type",
+      "Coupon Number",
+      "Date Redeemed (YYYY-MM-DD)",
+      "Bill Order Value (INR)",
+      "Redeemed By Staff",
+      "Outlet",
+      "Notes"
+    ];
+    
+    const sampleRow = [
+      "R-5001",
+      "B-1001",
+      "BOGO Large",
+      "1",
+      new Date().toISOString().split("T")[0],
+      "1450",
+      "Loy Rego",
+      "Antop Hill",
+      "Redeemed for sample order"
+    ];
+
+    triggerCSVDownload("prezzo_redemptions_template.csv", headers, [sampleRow]);
+  };
+
+  // Import redemptions from CSV
+  const handleImportRedemptionsCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const rows = parseCSV(text);
+
+        if (rows.length <= 1) {
+          throw new Error("The uploaded CSV file is empty or contains only headers.");
+        }
+
+        // Detect columns from headers
+        const headers = rows[0].map(h => h.toLowerCase().trim());
+        
+        // Find indices or use default positioning
+        const getIndex = (possibleNames: string[], defaultIdx: number) => {
+          const idx = headers.findIndex(h => possibleNames.some(p => h.includes(p)));
+          return idx !== -1 ? idx : defaultIdx;
+        };
+
+        const idIdx = getIndex(["id", "redemption id", "redemption_id"], 0);
+        const bookletIdIdx = getIndex(["booklet", "booklet id", "booklet_id"], 1);
+        const typeIdx = getIndex(["type", "coupon type", "coupon_type"], 2);
+        const indexIdx = getIndex(["number", "index", "coupon number", "coupon index", "coupon_index"], 3);
+        const dateIdx = getIndex(["date", "date redeemed", "date_redeemed", "redeemed_date"], 4);
+        const valIdx = getIndex(["value", "order value", "bill value", "bill order value", "amount"], 5);
+        const staffIdx = getIndex(["staff", "redeemed by", "staff name", "redeemed_by_staff"], 6);
+        const outletIdx = getIndex(["outlet", "location"], 7);
+        const notesIdx = getIndex(["notes", "note", "comment"], 8);
+
+        const newRedemptions: Redemption[] = [];
+        const seenIds = new Set<string>();
+
+        // Parse data rows
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (row.length === 0 || (row.length === 1 && row[0] === "")) continue;
+
+          // Extract values
+          let redemptionId = row[idIdx]?.trim() || "";
+          const bookletId = row[bookletIdIdx]?.trim() || "";
+          const couponTypeRaw = row[typeIdx]?.trim() || "";
+          const rawIndex = row[indexIdx]?.trim() || "1";
+          const dateRedeemed = row[dateIdx]?.trim() || new Date().toISOString();
+          const rawValue = row[valIdx]?.trim() || "0";
+          const staffName = row[staffIdx]?.trim() || "Loy Rego";
+          const outlet = row[outletIdx]?.trim() || "Antop Hill";
+          const notes = row[notesIdx]?.trim() || undefined;
+
+          if (!bookletId) {
+            throw new Error(`Row ${i + 1} has a missing Booklet ID. Every redemption record must reference a Booklet ID.`);
+          }
+
+          const couponType = normalizeCouponType(couponTypeRaw);
+          const couponIndex = isNaN(Number(rawIndex)) ? 1 : Number(rawIndex);
+          const orderValue = isNaN(Number(rawValue)) ? 0 : Number(rawValue);
+
+          // Generate unique ID if missing
+          if (!redemptionId) {
+            redemptionId = `R-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          }
+
+          if (seenIds.has(redemptionId)) {
+            continue;
+          }
+          seenIds.add(redemptionId);
+
+          newRedemptions.push({
+            id: redemptionId,
+            bookletId,
+            couponType,
+            couponIndex,
+            dateRedeemed,
+            orderValue,
+            staffName,
+            outlet,
+            notes
+          });
+        }
+
+        if (newRedemptions.length === 0) {
+          throw new Error("No valid redemption records found in the CSV file.");
+        }
+
+        // Save to Database
+        let finalRedemptions: Redemption[] = [];
+        if (redemptionCsvImportMode === "replace") {
+          finalRedemptions = newRedemptions;
+        } else {
+          // Append mode: avoid duplication of existing Redemption IDs
+          const existingRedemptions = [...redemptions];
+          const existingIds = new Set(existingRedemptions.map(r => r.id));
+          
+          const filteredNew = newRedemptions.filter(r => !existingIds.has(r.id));
+          finalRedemptions = [...filteredNew, ...existingRedemptions];
+        }
+
+        // Update storage
+        localStorage.setItem("prezzo_redemptions", JSON.stringify(finalRedemptions));
+        onDataChange();
+
+        setRedemptionCsvCount(newRedemptions.length);
+        setRedemptionCsvSuccess(true);
+        setRedemptionCsvError(null);
+        setTimeout(() => setRedemptionCsvSuccess(false), 5000);
+      } catch (err: any) {
+        setRedemptionCsvError(err.message || "Failed to process CSV file. Ensure columns match the template.");
+        setRedemptionCsvSuccess(false);
       }
     };
     reader.readAsText(file);
@@ -594,6 +748,83 @@ export default function SystemSettings({
                 <span className="text-xs text-red-600 font-bold flex items-center gap-1">
                   <AlertTriangle size={14} />
                   {csvError}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CSV Redemption Import Section */}
+        {isAdmin && (
+          <div className="border-t border-stone-100 pt-6 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-bold text-stone-800 uppercase tracking-wider font-mono">
+                Bulk Redemption Import (.csv)
+              </h3>
+              <button
+                type="button"
+                onClick={handleDownloadRedemptionsCSVTemplate}
+                className="text-[10px] font-mono font-bold text-[#991B1B] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-center"
+              >
+                <Download size={12} />
+                Download Redemption CSV Template
+              </button>
+            </div>
+            <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+              Import existing coupon redemption history to accurately sync remaining coupons. Fill out the downloaded CSV template and upload it below.
+            </p>
+
+            <div className="bg-stone-50 border border-stone-200/50 rounded-xl p-4 mb-4">
+              <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2 font-mono">
+                Import Method
+              </span>
+              <div className="flex gap-4">
+                <label className="flex items-center space-x-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="redemptionCsvImportMode"
+                    checked={redemptionCsvImportMode === "append"}
+                    onChange={() => setRedemptionCsvImportMode("append")}
+                    className="text-[#991B1B] focus:ring-[#991B1B] accent-[#991B1B]"
+                  />
+                  <span>Append (Add to existing records)</span>
+                </label>
+                <label className="flex items-center space-x-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="redemptionCsvImportMode"
+                    checked={redemptionCsvImportMode === "replace"}
+                    onChange={() => setRedemptionCsvImportMode("replace")}
+                    className="text-[#991B1B] focus:ring-[#991B1B] accent-[#991B1B]"
+                  />
+                  <span>Overwrite (Replace all current redemptions)</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              <label className="relative flex items-center justify-center space-x-2 bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer border border-stone-300">
+                <Upload size={14} />
+                <span>Upload Redemption CSV</span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportRedemptionsCSV}
+                  className="hidden"
+                />
+              </label>
+
+              {redemptionCsvSuccess && (
+                <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                  <Check size={14} />
+                  Successfully imported {redemptionCsvCount} redemption(s)!
+                </span>
+              )}
+
+              {redemptionCsvError && (
+                <span className="text-xs text-red-600 font-bold flex items-center gap-1">
+                  <AlertTriangle size={14} />
+                  {redemptionCsvError}
                 </span>
               )}
             </div>
