@@ -12,7 +12,14 @@ interface BookletDetailProps {
   booklet: BookletWithCoupons;
   outlets: Outlet[];
   onBack: () => void;
-  onRedeemCoupon: (couponType: CouponType, couponIndex: number, orderValue: number, outlet: string, notes?: string) => Promise<void>;
+  onRedeemCoupon: (
+    couponType: CouponType,
+    couponIndex: number,
+    orderValue: number,
+    outlet: string,
+    notes?: string,
+    dateRedeemed?: string
+  ) => Promise<void>;
   currentStaffName: string;
   activeOutlet: string;
 }
@@ -29,6 +36,7 @@ export default function BookletDetail({
   const [orderValue, setOrderValue] = useState<number>(0);
   const [outlet, setOutlet] = useState(activeOutlet || outlets[0]?.name || "Antop Hill");
   const [notes, setNotes] = useState("");
+  const [redemptionDate, setRedemptionDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +44,7 @@ export default function BookletDetail({
     setSelectedCouponStatus(status);
     setOrderValue(0);
     setNotes("");
+    setRedemptionDate(new Date().toISOString().split("T")[0]);
     setError(null);
   };
 
@@ -55,7 +64,8 @@ export default function BookletDetail({
       `Coupon: ${selectedCouponStatus.coupon.displayName}\n` +
       `Bill Value: ₹${orderValue}\n` +
       `Outlet: ${outlet}\n` +
-      `Staff: ${currentStaffName}\n\n` +
+      `Staff: ${currentStaffName}\n` +
+      `Redemption Date: ${redemptionDate}\n\n` +
       `Are you sure you want to log this redemption? This action will write to your device's database in real-time and cannot be undone.`
     );
 
@@ -69,7 +79,8 @@ export default function BookletDetail({
         selectedCouponStatus.coupon.index,
         orderValue,
         outlet,
-        notes.trim() || undefined
+        notes.trim() || undefined,
+        redemptionDate
       );
       setSelectedCouponStatus(null);
     } catch (err: any) {
@@ -354,15 +365,23 @@ export default function BookletDetail({
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-stone-50 p-2.5 rounded-xl border border-stone-200/60">
-                    <div className="flex items-center space-x-1">
-                      <User size={12} className="text-stone-400 flex-shrink-0" />
-                      <span className="text-stone-600">Staff: <strong className="text-stone-900">{currentStaffName}</strong></span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock size={12} className="text-stone-400 flex-shrink-0" />
-                      <span className="text-stone-600">Date: <strong className="text-stone-900">{new Date().toLocaleDateString()}</strong></span>
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1 font-mono">
+                      Redemption Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={redemptionDate}
+                      onChange={(e) => setRedemptionDate(e.target.value)}
+                      required
+                      disabled={loading}
+                      className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-stone-900 text-sm font-mono font-semibold bg-stone-50 focus:outline-none focus:ring-1 focus:ring-[#991B1B] focus:border-[#991B1B]"
+                    />
+                  </div>
+
+                  <div className="text-xs bg-stone-50 p-2.5 rounded-xl border border-stone-200/60 flex items-center space-x-2">
+                    <User size={12} className="text-stone-400 flex-shrink-0" />
+                    <span className="text-stone-600">Logged By Staff: <strong className="text-stone-900">{currentStaffName}</strong></span>
                   </div>
 
                   <div>

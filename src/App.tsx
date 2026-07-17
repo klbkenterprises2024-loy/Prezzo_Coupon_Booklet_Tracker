@@ -202,7 +202,8 @@ export default function App() {
     couponIndex: number,
     orderValue: number,
     outletName: string,
-    notes?: string
+    notes?: string,
+    dateRedeemed?: string
   ) => {
     if (!user) throw new Error("Verification required to redeem coupons.");
     if (!selectedBookletId) throw new Error("No booklet is selected.");
@@ -212,7 +213,7 @@ export default function App() {
       bookletId: selectedBookletId,
       couponType,
       couponIndex,
-      dateRedeemed: new Date().toISOString(),
+      dateRedeemed: dateRedeemed ? new Date(dateRedeemed).toISOString() : new Date().toISOString(),
       orderValue,
       staffName: user.displayName || "Staff",
       outlet: outletName,
